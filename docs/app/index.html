@@ -1,15 +1,25 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ETH Kompetenzraster - Interaktive Lernplattform">
-    <meta name="theme-color" content="#1e3a8a">
-    
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="ETH Kompetenzraster - Interaktive Lernplattform" />
+    <meta name="theme-color" content="#1e3a8a" />
+
     <title>ETH Kompetenzraster</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231e3a8a' width='100' height='100'/%3E%3Ctext x='50' y='70' font-size='60' font-weight='bold' fill='white' text-anchor='middle'%3EETH%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="app.css">
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Favicon (SVG data URL) -->
+    <link
+        rel="icon"
+        type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%231e3a8a'/%3E%3Ctext x='60' y='70' font-size='42' text-anchor='middle' fill='white' font-family='system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial'%3EETH%3C/text%3E%3C/svg%3E"
+    />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="app.css" />
 </head>
 <body>
     <div id="app">
@@ -17,31 +27,47 @@
             <h1>ETH Kompetenzraster</h1>
             <p class="subtitle">Entwicklung akademischer Kompetenzen</p>
         </header>
-        
-        <div id="error-banner" class="error-banner" style="display:none; background:#dc2626; color:white; padding:1rem; text-align:center; margin-bottom:1rem; border-radius:8px;"><strong>⚠️ Fehler:</strong> <span id="error-text"></span><button onclick="location.reload()" style="margin-left:1rem; padding:0.5rem 1rem; background:white; color:#dc2626; border:none; border-radius:4px; cursor:pointer; font-weight:600;">Neuladen</button></div>
+
+        <!-- Fehler / Statusbanner -->
+        <div
+            id="error-banner"
+            class="error-banner"
+            style="display:none; background:#dc2626; color:#fff; padding:1rem; text-align:center; margin-bottom:1rem; border-radius:8px;"
+            role="alert"
+            aria-live="polite"
+        >
+            <strong>⚠️ Fehler:</strong> Daten konnten nicht geladen werden. Bitte prüfen Sie Ihre Netzwerkverbindung und versuchen Sie es erneut.
+        </div>
+
         <div id="content" class="content">
+            <!-- Übersicht -->
             <div id="overview" class="view-container">
-                <nav class="framework-navigation">
-                    <div class="nav-item" data-area="methodenspezifisch">
+                <nav class="framework-navigation" aria-label="Kompetenzbereiche">
+                    <button class="nav-item" data-area="methodenspezifisch" type="button">
                         <h2>Methodenspezifisch</h2>
                         <p>Methoden zum Verstehen und Agieren</p>
-                    </div>
-                    <div class="nav-item" data-area="sozial">
+                    </button>
+                    <button class="nav-item" data-area="sozial" type="button">
                         <h2>Sozial</h2>
                         <p>Kompetenzen in Interaktion mit anderen</p>
-                    </div>
-                    <div class="nav-item" data-area="persoenlich">
+                    </button>
+                    <button class="nav-item" data-area="persoenlich" type="button">
                         <h2>Persönlich</h2>
                         <p>Selbstmanagement-Kompetenzen</p>
-                    </div>
+                    </button>
+                    <button class="nav-item" data-area="alle" type="button" aria-label="Alle Bereiche">
+                        <h2>Alle</h2>
+                        <p>Gesamte Übersicht</p>
+                    </button>
                 </nav>
-                
-                <div id="module-grid" class="module-grid"></div>
+
+                <div id="module-grid" class="module-grid" aria-live="polite" aria-busy="false"></div>
             </div>
-            
-            <div id="detail" class="view-container" style="display: none;">
-                <button id="back-btn" class="back-button">← Zurück</button>
-                <article id="module-detail">
+
+            <!-- Detailansicht -->
+            <div id="detail" class="view-container" style="display:none;">
+                <button id="back-btn" class="back-button" type="button" aria-label="Zurück zur Übersicht">← Zurück</button>
+                <article id="module-detail" class="module-detail" aria-labelledby="detail-title">
                     <h1 id="detail-title"></h1>
                     <div class="detail-meta">
                         <span id="detail-area" class="badge"></span>
@@ -51,6 +77,262 @@
                 </article>
             </div>
         </div>
+
+        <footer class="app-footer">
+            <p>
+                ETH Kompetenzraster (Eigentum: ETH Zürich) |
+                Kontakt: <a href="mailto:kompetenzraster@ethz.ch">kompetenzraster@ethz.ch</a>
+            </p>
+            <p class="offline-indicator" id="offline-indicator" style="display:none;">
+                🔌 Sie sind derzeit offline. Einige Funktionen sind ggf. eingeschränkt.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        (() => {
+            const els = {
+                errorBanner: document.getElementById('error-banner'),
+                overview: document.getElementById('overview'),
+                detail: document.getElementById('detail'),
+                moduleGrid: document.getElementById('module-grid'),
+                backBtn: document.getElementById('back-btn'),
+                detailTitle: document.getElementById('detail-title'),
+                detailArea: document.getElementById('detail-area'),
+                detailContent: document.getElementById('detail-content'),
+                detailTasks: document.getElementById('detail-tasks'),
+                offlineIndicator: document.getElementById('offline-indicator'),
+            };
+
+            const state = {
+                modules: [],
+                filtered: [],
+                current: null,
+            };
+
+            // Beispiel-Daten als Fallback, falls kein modules.json vorhanden oder ladbar ist
+            const sampleModules = [
+                {
+                    id: 'm1',
+                    titel: 'Wissenschaftliches Schreiben',
+                    kurzbeschreibung: 'Strukturiertes und präzises Schreiben im akademischen Kontext.',
+                    inhalt: [
+                        'Grundlagen wissenschaftlicher Textsorten',
+                        'Argumentationslogik und Quellenarbeit',
+                        'Zitationsstile und formale Anforderungen',
+                    ],
+                    aufgaben: [
+                        'Verfasse eine strukturierte Einleitung mit Forschungsfrage.',
+                        'Analysiere 3 Quellen und bewerte deren Relevanz.',
+                        'Formatiere ein Dokument gemäß vorgegebenem Stil (z.B. APA).',
+                    ],
+                    bereich: 'methodenspezifisch',
+                },
+                {
+                    id: 'm2',
+                    titel: 'Teamkommunikation',
+                    kurzbeschreibung: 'Effektive Kommunikation und Kollaboration in Teams.',
+                    inhalt: [
+                        'Kommunikationsmodelle (z.B. Vier-Seiten-Modell)',
+                        'Feedback-Regeln und Moderationstechniken',
+                        'Digitale Kollaborationstools',
+                    ],
+                    aufgaben: [
+                        'Leite ein wöchentliches Stand-up mit klaren Zielen.',
+                        'Gib konstruktives Feedback zu einer Gruppenarbeit.',
+                        'Dokumentiere Entscheidungen transparent im Team-Log.',
+                    ],
+                    bereich: 'sozial',
+                },
+                {
+                    id: 'm3',
+                    titel: 'Selbstorganisation',
+                    kurzbeschreibung: 'Zeit- und Aufgabenmanagement für das Studium.',
+                    inhalt: [
+                        'Priorisierungsmethoden (Eisenhower, MoSCoW)',
+                        'Planung in Sprints und Retrospektiven',
+                        'Umgang mit Prokrastination',
+                    ],
+                    aufgaben: [
+                        'Erstelle einen 2‑Wochen‑Plan mit SMART‑Zielen.',
+                        'Wende die Eisenhower‑Matrix auf deine Aufgabenliste an.',
+                        'Führe eine kurze Retro über deine Lernwoche durch.',
+                    ],
+                    bereich: 'persoenlich',
+                },
+            ];
+
+            function showError(message) {
+                els.errorBanner.style.display = 'block';
+                els.errorBanner.textContent = '⚠️ ' + message;
+            }
+
+            function hideError() {
+                els.errorBanner.style.display = 'none';
+                els.errorBanner.textContent = '';
+            }
+
+            function setBusy(busy) {
+                els.moduleGrid.setAttribute('aria-busy', busy ? 'true' : 'false');
+            }
+
+            function renderOverview() {
+                els.overview.style.display = '';
+                els.detail.style.display = 'none';
+                els.moduleGrid.innerHTML = '';
+
+                const list = state.filtered.length ? state.filtered : state.modules;
+                if (!list.length) {
+                    els.moduleGrid.innerHTML = '<p>Keine Module gefunden.</p>';
+                    return;
+                }
+
+                const frag = document.createDocumentFragment();
+                list.forEach(mod => {
+                    const card = document.createElement('button');
+                    card.className = 'module-card';
+                    card.type = 'button';
+                    card.setAttribute('data-id', mod.id);
+                    card.innerHTML = `
+                        <div class="card-head">
+                            <span class="badge">${formatArea(mod.bereich)}</span>
+                        </div>
+                        <h3 class="card-title">${escapeHtml(mod.titel)}</h3>
+                        <p class="card-desc">${escapeHtml(mod.kurzbeschreibung)}</p>
+                    `;
+                    card.addEventListener('click', () => openDetail(mod.id));
+                    frag.appendChild(card);
+                });
+                els.moduleGrid.appendChild(frag);
+            }
+
+            function openDetail(id) {
+                const mod = state.modules.find(m => m.id === id);
+                if (!mod) return;
+
+                state.current = mod;
+
+                els.detailTitle.textContent = mod.titel;
+                els.detailArea.textContent = formatArea(mod.bereich);
+
+                els.detailContent.innerHTML = '';
+                if (Array.isArray(mod.inhalt) && mod.inhalt.length) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'points';
+                    mod.inhalt.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        ul.appendChild(li);
+                    });
+                    els.detailContent.appendChild(ul);
+                } else {
+                    els.detailContent.innerHTML = '<p>Keine Inhalte verfügbar.</p>';
+                }
+
+                els.detailTasks.innerHTML = '';
+                if (Array.isArray(mod.aufgaben) && mod.aufgaben.length) {
+                    const ol = document.createElement('ol');
+                    ol.className = 'tasks';
+                    mod.aufgaben.forEach(task => {
+                        const li = document.createElement('li');
+                        li.textContent = task;
+                        ol.appendChild(li);
+                    });
+                    els.detailTasks.appendChild(ol);
+                } else {
+                    els.detailTasks.innerHTML = '<p>Keine Aufgaben vorhanden.</p>';
+                }
+
+                els.overview.style.display = 'none';
+                els.detail.style.display = '';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function formatArea(area) {
+                switch (area) {
+                    case 'methodenspezifisch': return 'Methodenspezifisch';
+                    case 'sozial': return 'Sozial';
+                    case 'persoenlich': return 'Persönlich';
+                    default: return 'Unbekannt';
+                }
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replaceAll('&', '&amp;')
+                    .replaceAll('<', '&lt;')
+                    .replaceAll('>', '&gt;')
+                    .replaceAll('"', '&quot;')
+                    .replaceAll("'", '&#39;');
+            }
+
+            function attachNavHandlers() {
+                document.querySelectorAll('.framework-navigation .nav-item').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const area = btn.getAttribute('data-area');
+                        if (area === 'alle') {
+                            state.filtered = [];
+                        } else {
+                            state.filtered = state.modules.filter(m => m.bereich === area);
+                        }
+                        renderOverview();
+                    });
+                });
+                els.backBtn.addEventListener('click', () => {
+                    state.current = null;
+                    renderOverview();
+                });
+            }
+
+            async function loadModules() {
+                setBusy(true);
+                hideError();
+                try {
+                    // Versuche zuerst, externe Daten zu laden (optional)
+                    const res = await fetch('modules.json', { cache: 'no-store' });
+                    if (!res.ok) throw new Error('Module konnten nicht geladen werden (' + res.status + ').');
+                    const data = await res.json();
+                    if (!Array.isArray(data)) throw new Error('Unerwartetes Datenformat.');
+                    state.modules = data;
+                } catch (e) {
+                    // Fallback auf Beispiel-Daten
+                    state.modules = sampleModules;
+                    // Hinweis, dass Fallback genutzt wird
+                    console.warn('[Kompetenzraster] Fallback auf lokale Beispieldaten:', e);
+                    showError('Online-Daten nicht verfügbar. Es werden Beispieldaten angezeigt.');
+                } finally {
+                    setBusy(false);
+                    renderOverview();
+                }
+            }
+
+            function setupConnectivityIndicators() {
+                function updateIndicator() {
+                    const offline = !navigator.onLine;
+                    els.offlineIndicator.style.display = offline ? '' : 'none';
+                }
+                window.addEventListener('online', updateIndicator);
+                window.addEventListener('offline', updateIndicator);
+                updateIndicator();
+            }
+
+            function registerServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker
+                        .register('sw.js')
+                        .catch(err => console.warn('Service Worker konnte nicht registriert werden:', err));
+                }
+            }
+
+            // Initialisierung
+            attachNavHandlers();
+            setupConnectivityIndicators();
+            registerServiceWorker();
+            loadModules();
+        })();
+    </script>
+</body>
+</html>
         
         <footer class="app-footer">
             <p>ETH Kompetenzraster (Eigentum: ETH Zürich) | Kontakt: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1e7c7f6c7c7f6c7f30727f7d7f6c7f5e6d72307b6a7664307d76">[email&#160;protected]</a></p>
